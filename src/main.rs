@@ -6,6 +6,7 @@ use core::arch::global_asm; // 支持内联汇编
 mod panic;
 mod driver;
 mod libprint;
+mod memory;
 global_asm!(include_str!("arch/aarch64/start.s")); // 内联汇编
 
 #[macro_export]

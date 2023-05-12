@@ -3,6 +3,5 @@
 /scripts/host/QEMU_EFI.fd
 /scripts/host/ubuntu-18.04-server-arm64.iso
 /scripts/host/ubuntuimg.img
-/scripts/host/user-data
-/scripts/host/user-data/img
+/scripts/host/ubuntu4c.img
 /.vscode

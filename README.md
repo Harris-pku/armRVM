@@ -73,28 +73,9 @@ qemu-system-aarch64 \
 make image
 ```
 
-2. 在qemu中启动制作好的虚拟机镜像
+2. 加载jailhouse
 ```shell
-make qemu
+sudo insmod ./driver/jailhouse.ko 
+sudo chown $(whoami) /dev/jailhouse
+sudo jailhouse enable ./configs/arm64/qemu-arm64.cell 
 ```
-
-
-## 编译GDB for aarch64（未成功）
-1. 下载gdb source: https://ftp.gnu.org/gnu/gdb/gdb-13.1.tar.gz
-2. tar -xzvf gdb-13.1.tar.gz
-3. mkdir build 
-4. cd $_
-5. ../configure --prefix=$PWD --target=aarch64-linux-gnu
-PS: host填写自己电脑里交叉编译器的前缀，然后configure会自动寻找该前缀的编译器
-6. make -j$(nproc) [CFALGS=-static CXXFLAGS=-static]
-
-PS: --target指定要调试的程序的架构 --host指定运行gdb程序的架构
-
-参考：
-http://ruer.fun/2021/04/20/GDB-%E7%BC%96%E8%AF%91%E6%96%B9%E6%B3%95-2021/
-## 编译qemu（可用）
-1. download qemu7.2.source
-2. tar 解压
-3. mkdir build %% cd build
-4. ../qemu-7.2.0/configure --enable-kvm --enable-slirp --enable-debug --target-list=aarch64-softmmu,x86_64-softmmu
-5. make -j2

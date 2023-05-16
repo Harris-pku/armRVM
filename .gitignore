@@ -4,4 +4,11 @@
 /scripts/host/ubuntu-18.04-server-arm64.iso
 /scripts/host/ubuntuimg.img
 /scripts/host/ubuntu4c.img
+/scripts/dev/
+/dev/flash0.img
+/dev/flash1.img
+/dev/ubuntu-18.04-server-cloudimg-arm64.img
+/dev/ubuntu-18.04-server-cloudimg-arm64.img.cp
+/dev/user-data
+/dev/user-data.img
 /.vscode

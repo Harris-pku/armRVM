@@ -1,7 +1,7 @@
 ARCH ?= aarch64
 LOG ?=
 STATS ?= off
-PORT ?= 2333
+PORT ?= 30022
 
 # do not support debug mode
 MODE := release
@@ -43,3 +43,7 @@ elf:
 
 $(target_bin): elf
 	$(OBJCOPY) $(target_elf) --strip-all -O binary $@
+
+.PHONY: scp
+scp:
+	scp -P $(PORT) -r $(target_bin) ubuntu@localhost:/home/ubuntu

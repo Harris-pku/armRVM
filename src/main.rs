@@ -1,14 +1,15 @@
 #![no_std] // 禁用标准库链接
 #![no_main] // 不使用main入口，使用自己定义实际入口_start，因为我们还没有初始化堆栈指针 
 
-use core::arch::global_asm; // 支持内联汇编
+// use core::arch::global_asm; // 支持内联汇编
 
+mod arch;
 mod panic;
 mod driver;
 mod libprint;
 mod consts;
 mod memory;
-global_asm!(include_str!("arch/aarch64/start.s")); // 内联汇编
+// global_asm!(include_str!("arch/aarch64/start.s")); // 内联汇编
 
 #[macro_export]
 macro_rules! print {

@@ -1,18 +1,18 @@
 //! PL011 UART.
 
-use spin::Mutex;
-use crate::memory::{PhysAddr, VirtAddr};
+// use spin::Mutex;
+// use crate::memory::{PhysAddr, VirtAddr};
 
-use tock_registers::interfaces::{Readable, Writeable};
+// use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::register_structs;
 use tock_registers::registers::{ReadOnly, ReadWrite, WriteOnly};
 
 // uart base of pl011
-const UART_BASE: PhysAddr = 0x0900_0000;
+// const UART_BASE: PhysAddr = 0x0900_0000;
 #[allow(unused)]
 const UART_IRQ_NUM: usize = 33;
 
-static UART: Mutex<Pl011Uart> = Mutex::new(Pl011Uart::new(UART_BASE));
+// static UART: Mutex<Pl011Uart> = Mutex::new(Pl011Uart::new(UART_BASE));
 
 register_structs! {
     Pl011UartRegs {
@@ -38,57 +38,57 @@ register_structs! {
     }
 }
 
-struct Pl011Uart {
-    base_vaddr: VirtAddr,
-}
+// struct Pl011Uart {
+//     base_vaddr: VirtAddr,
+// }
 
-impl Pl011Uart {
-    const fn new(base_vaddr: VirtAddr) -> Self {
-        Self { base_vaddr }
-    }
+// impl Pl011Uart {
+//     const fn new(base_vaddr: VirtAddr) -> Self {
+//         Self { base_vaddr }
+//     }
 
-    const fn regs(&self) -> &Pl011UartRegs {
-        unsafe { &*(self.base_vaddr.as_ptr() as *const _) }
-    }
+    // const fn regs(&self) -> &Pl011UartRegs {
+    //     unsafe { &*(self.base_vaddr.as_ptr() as *const _) }
+    // }
 
-    fn init(&mut self) {
-        // clear all irqs
-        self.regs().icr.set(0x3ff);
+    // fn init(&mut self) {
+    //     // clear all irqs
+    //     self.regs().icr.set(0x3ff);
 
-        // set fifo trigger level
-        self.regs().ifls.set(0); // 1/8 rxfifo, 1/8 txfifo.
+    //     // set fifo trigger level
+    //     self.regs().ifls.set(0); // 1/8 rxfifo, 1/8 txfifo.
 
-        // enable rx interrupt
-        self.regs().imsc.set(1 << 4); // rxim
+    //     // enable rx interrupt
+    //     self.regs().imsc.set(1 << 4); // rxim
 
-        // enable receive
-        self.regs().cr.set((1 << 0) | (1 << 8) | (1 << 9)); // tx enable, rx enable, uart enable
-    }
+    //     // enable receive
+    //     self.regs().cr.set((1 << 0) | (1 << 8) | (1 << 9)); // tx enable, rx enable, uart enable
+    // }
 
-    fn putchar(&mut self, c: u8) {
-        while self.regs().fr.get() & (1 << 5) != 0 {}
-        self.regs().dr.set(c as u32);
-    }
+    // fn putchar(&mut self, c: u8) {
+    //     while self.regs().fr.get() & (1 << 5) != 0 {}
+    //     self.regs().dr.set(c as u32);
+    // }
 
-    fn getchar(&mut self) -> Option<u8> {
-        if self.regs().fr.get() & (1 << 4) == 0 {
-            Some(self.regs().dr.get() as u8)
-        } else {
-            None
-        }
-    }
-}
+    // fn getchar(&mut self) -> Option<u8> {
+    //     if self.regs().fr.get() & (1 << 4) == 0 {
+    //         Some(self.regs().dr.get() as u8)
+    //     } else {
+    //         None
+    //     }
+    // }
+// }
 
-/// Writes a byte to the console.
-pub fn putchar(c: u8) {
-    UART.lock().putchar(c)
-}
+// /// Writes a byte to the console.
+// pub fn putchar(c: u8) {
+//     UART.lock().putchar(c)
+// }
 
-/// Reads a byte from the console, or returns [`None`] if no input is available.
-pub fn getchar() -> Option<u8> {
-    UART.lock().getchar()
-}
+// /// Reads a byte from the console, or returns [`None`] if no input is available.
+// pub fn getchar() -> Option<u8> {
+//     UART.lock().getchar()
+// }
 
-pub(super) fn init() {
-    UART.lock().init();
-}
+// pub(super) fn init() {
+//     UART.lock().init();
+// }

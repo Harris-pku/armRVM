@@ -11,4 +11,6 @@
 /dev/ubuntu-18.04-server-cloudimg-arm64.img.cp
 /dev/user-data
 /dev/user-data.img
+/dev/jailhouse
+/jailrvm
 /.vscode

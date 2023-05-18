@@ -59,7 +59,7 @@ index fe752753..0fad50d2 100644
 +#define JAILHOUSE_INTEL_FW_NAME	"rvm-intel.bin"
  #else
 -#define JAILHOUSE_FW_NAME	"jailhouse.bin"
-+#define JAILHOUSE_FW_NAME	"rvm.bin"
++#define JAILHOUSE_FW_NAME	"rvmarm.bin"
  #endif
 
  MODULE_DESCRIPTION("Management driver for Jailhouse partitioning hypervisor");

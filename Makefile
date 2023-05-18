@@ -47,3 +47,11 @@ $(target_bin): elf
 .PHONY: scp
 scp:
 	scp -P $(PORT) -r $(target_bin) ubuntu@localhost:/home/ubuntu
+
+.PHONY: jailhouse
+jailhouse:
+	scp -P $(PORT) -r ./dev/jailhouse ubuntu@localhost:/home/ubuntu
+
+.PHONY: patch
+patch:
+	scp -P $(PORT) -r ./scripts/guest/rvmarm.patch ubuntu@localhost:/home/ubuntu

@@ -1,0 +1,25 @@
+gdb-multiarch
+target remote:1234
+set arch aarch64
+layout asm
+layout regs
+c
+si
+n
+add-symbol-file driver/jailhouse.ko 0xffff0000011b5000 -s .data 0xffff0000011bb0c0 -s .bss 0xffff0000011bba80
+0x0000ffffc0200800
+0xffff00000
+sudo insmod jailhouse/driver/jailhouse.ko
+sudo jailhouse enable jailhouse/configs/arm64/qemu-arm64.cell
+cd /sys/module/jailhouse/sections
+add-symbol-file hypervisor/hypervisor.o 0x7fc00800   el2时(未初始化mmu el2) 
+
+arch_entry在el1 不定
+el2_entry在el2 0x7fc04070
+初始化mmu el2后
+
+b mmu_el2 0x7fc04090
+ret 0x7fc13034
+    0xffff40600000
+add-symbol-file hypervisor/hypervisor.o 0xffffc0200800  el2时(初始化mmu el2后) 
+qemu-system-aarch64 -m 1G -cpu cortex-a57 -smp 1 -M virt,gic-version=3,virtualization=on -bios QEMU_EFI.fd -nographic -drive if=none,file=ubuntuimage.qcow2,index=0,id=hd0 -device virtio-blk-device,drive=hd0 -net user,id=net,hostfwd=tcp::2333-:22 -net nic,model=e1000e -serial mon:stdio -s -S

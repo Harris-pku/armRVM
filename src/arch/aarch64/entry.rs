@@ -5,16 +5,20 @@ use core::arch::global_asm; // 支持内联汇编
 // use crate::consts::{ID_AA64MMFR0_PARANGE_SHIFT, SCTLR_I_BIT, SCTLR_C_BIT};
 // use crate::consts::{SCTLR_M_BIT, SCTLR_EL2_RES1};
 
-// pub unsafe extern "C" fn el2_entry() -> i32 {
-//     core::arch::asm!(
-        // "
-        // mrs	x1, esr_el2
-    	// lsr	x1, x1, #26
-	    // cmp	x1, #0x16
-	    // b.ne	.
+pub unsafe extern "C" fn el2_entry() -> i32 {
+    core::arch::asm!(
+        "
+        mrs	x1, esr_el2
+    	lsr	x1, x1, #26
+	    cmp	x1, #0x16
+	    b.ne	.
 
-        // /* init bootstrap page tables */
-        // bl	{init_bootstrap_pt}
+        /* init bootstrap page tables */
+        bl	{init_bootstrap_pt}
+
+        bl {entry}     
+        eret
+        ",
         
         // adr	x0, bootstrap_pt_l0 // todo
     	// adr	x30, 1f
@@ -48,26 +52,21 @@ use core::arch::global_asm; // 支持内联汇编
 	    // mov	x30, xzr
 
         
-        // bl {entry}     
-        // eret
-        // ",
-        // init_bootstrap_pt = sym self::init_bootstrap_pt,
+        init_bootstrap_pt = sym self::init_bootstrap_pt,
         // enable_mmu_el2 = sym self::enable_mmu_el2,
-        // entry = sym crate::entry,
-//         "
-//         eret",
-//         options(noreturn),
-//     );
-// }
+        entry = sym crate::entry,
+        options(noreturn),
+    );
+}
 
 global_asm!(
     include_str!("./bootvec.S")//,
     // sym el2_entry
 );
 
-// pub unsafe extern "C" fn init_bootstrap_pt() -> i32 {
-//     core::arch::asm!(
-//         "
+pub unsafe extern "C" fn init_bootstrap_pt() -> i32 {
+    core::arch::asm!(
+        "
 //         adrp	x0, __trampoline_start
 
 //     	get_index x2, x13, 0
@@ -92,10 +91,11 @@ global_asm!(
 
 //         /* will return to our caller */
 // 	    b	arm_dcaches_flush // todo
-//         ",
-//         options(noreturn),
-//     );
-// }
+        eret
+        ",
+        options(noreturn),
+    );
+}
 
 // global_asm!(include_str!("./init_pt.S"));
 

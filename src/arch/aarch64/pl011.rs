@@ -1,18 +1,18 @@
 //! PL011 UART.
 
-// use spin::Mutex;
-// use crate::memory::{PhysAddr, VirtAddr};
+use spin::Mutex;
+use crate::memory::{PhysAddr, VirtAddr};
 
-// use tock_registers::interfaces::{Readable, Writeable};
+use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::register_structs;
 use tock_registers::registers::{ReadOnly, ReadWrite, WriteOnly};
 
 // uart base of pl011
-// const UART_BASE: PhysAddr = 0x0900_0000;
+const UART_BASE: PhysAddr = 0x0900_0000;
 #[allow(unused)]
 const UART_IRQ_NUM: usize = 33;
 
-// static UART: Mutex<Pl011Uart> = Mutex::new(Pl011Uart::new(UART_BASE));
+static UART: Mutex<Pl011Uart> = Mutex::new(Pl011Uart::new(UART_BASE));
 
 register_structs! {
     Pl011UartRegs {
@@ -38,14 +38,14 @@ register_structs! {
     }
 }
 
-// struct Pl011Uart {
-//     base_vaddr: VirtAddr,
-// }
+struct Pl011Uart {
+    base_vaddr: VirtAddr,
+}
 
-// impl Pl011Uart {
-//     const fn new(base_vaddr: VirtAddr) -> Self {
-//         Self { base_vaddr }
-//     }
+impl Pl011Uart {
+    const fn new(base_vaddr: VirtAddr) -> Self {
+        Self { base_vaddr }
+    }
 
     // const fn regs(&self) -> &Pl011UartRegs {
     //     unsafe { &*(self.base_vaddr.as_ptr() as *const _) }
@@ -77,7 +77,7 @@ register_structs! {
     //         None
     //     }
     // }
-// }
+}
 
 // /// Writes a byte to the console.
 // pub fn putchar(c: u8) {

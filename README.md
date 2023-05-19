@@ -4,13 +4,14 @@
 https://github.com/rcore-os/RVM1.5
 
 ## 0. qemu启动arm64虚拟机
-
+### 0.0 宿主机安装依赖包
 ```shell
 sudo apt-get update
 sudo apt-get install qemu
 sudo apt-get install qemu-system-arm
 ```
-
+### 0.1 qemu启动arm64虚拟机
+根据 `jailhouse/configs/arm64/qemu-arm64.cell` 的配置，虚拟机需有16核和1G内存。
 ```shell
 qemu-system-aarch64 \
 	-m 1G -cpu cortex-a57 \
@@ -26,7 +27,7 @@ qemu-system-aarch64 \
 
 ## 1. 编译运行jailhouse
 
-### 1.0 安装依赖包
+### 1.0 虚拟机安装依赖包
 
 ```shell
 sudo sed -i "s/http:\/\/archive.ubuntu.com/http:\/\/mirrors.tuna.tsinghua.edu.cn/g" /etc/apt/sources.list
@@ -96,7 +97,7 @@ sudo rmmod jailhouse
 
 ## 2 编译运行armRVM
 
-```
+```shell
 # in host
 make
 scp -P 30022 -r rvmarm.bin ubuntu@localhost:/home/ubuntu
@@ -127,7 +128,7 @@ patching file tools/root-cell-config.c.tmpl
 
 继续执行
 
-```
+```shell
 sudo make ARCH=arm64
 sudo update-grub
 sudo reboot

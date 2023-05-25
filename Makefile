@@ -54,4 +54,8 @@ jailhouse:
 
 .PHONY: patch
 patch:
-	scp -P $(PORT) -r ./scripts/guest/rvmarm.patch ubuntu@localhost:/home/ubuntu
+	scp -P $(PORT) ./scripts/guest/rvmarm.patch ubuntu@localhost:/home/ubuntu
+
+.PHONY: rvmbin
+rvmbin:
+	scp -P $(PORT) rvmarm.bin ubuntu@localhost:/home/ubuntu

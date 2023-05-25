@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use alloc::string::String;
 use core::fmt::{Debug, Formatter, Result};
 

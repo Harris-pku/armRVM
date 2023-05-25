@@ -1,15 +1,15 @@
+#![allow(dead_code)]
 //! PL011 UART.
 
 use spin::Mutex;
 use crate::memory::{PhysAddr, VirtAddr};
 
-use tock_registers::interfaces::{Readable, Writeable};
+// use tock_registers::interfaces::{Readable, Writeable};
 use tock_registers::register_structs;
 use tock_registers::registers::{ReadOnly, ReadWrite, WriteOnly};
 
 // uart base of pl011
 const UART_BASE: PhysAddr = 0x0900_0000;
-#[allow(unused)]
 const UART_IRQ_NUM: usize = 33;
 
 static UART: Mutex<Pl011Uart> = Mutex::new(Pl011Uart::new(UART_BASE));

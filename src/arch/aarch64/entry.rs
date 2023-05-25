@@ -1,10 +1,14 @@
 use core::arch::global_asm; // 支持内联汇编
 
-// use crate::consts::{DEFAULT_MAIR_EL2, T0SZ, TCR_IRGN0_SHIFT, TCR_ORGN0_SHIFT};
-// use crate::consts::{TCR_INNER_SHAREABLE, TCR_SH0_SHIFT, TCR_EL2_RES1};
-// use crate::consts::{ID_AA64MMFR0_PARANGE_SHIFT, SCTLR_I_BIT, SCTLR_C_BIT};
-// use crate::consts::{SCTLR_M_BIT, SCTLR_EL2_RES1};
+// use crate::consts::{ID_AA64MMFR0_PARANGE_SHIFT};
+global_asm!(include_str!("./init_pt.S"));
+global_asm!(
+    include_str!("./bootvec.S")//,
+    // sym el2_entry
+);
 
+#[naked]
+#[no_mangle]
 pub unsafe extern "C" fn el2_entry() -> i32 {
     core::arch::asm!(
         "
@@ -59,100 +63,80 @@ pub unsafe extern "C" fn el2_entry() -> i32 {
     );
 }
 
-global_asm!(
-    include_str!("./bootvec.S")//,
-    // sym el2_entry
-);
-
+#[naked]
+#[no_mangle]
 pub unsafe extern "C" fn init_bootstrap_pt() -> i32 {
     core::arch::asm!(
         "
-//         adrp	x0, __trampoline_start
+        adrp	x0, __trampoline_start
 
-//     	get_index x2, x13, 0
-// 	    set_table bootstrap_pt_l0, x2, bootstrap_pt_l1_hyp_uart
+    	// get_index x2, x13, 0
+	    // set_table bootstrap_pt_l0, x2, bootstrap_pt_l1_hyp_uart
 
-//     	get_index x3, x0, 0
-// 	    set_table bootstrap_pt_l0, x3, bootstrap_pt_l1_trampoline
+    	// get_index x3, x0, 0
+	    // set_table bootstrap_pt_l0, x3, bootstrap_pt_l1_trampoline
 
-//     	get_index x2, x13, 1
-// 	    set_table bootstrap_pt_l1_hyp_uart, x2, bootstrap_pt_l2_hyp_uart
-//     	get_index x4, x0, 1
-// 	    set_block bootstrap_pt_l1_trampoline, x4, x0, 1
+    	// get_index x2, x13, 1
+	    // set_table bootstrap_pt_l1_hyp_uart, x2, bootstrap_pt_l2_hyp_uart
+    	// get_index x4, x0, 1
+	    // set_block bootstrap_pt_l1_trampoline, x4, x0, 1
 
-//     	get_index x2, x13, 2
-// 	    set_block bootstrap_pt_l2_hyp_uart, x2, x12, 2
-//     	get_index x3, x15, 2
-// 	    set_block_dev bootstrap_pt_l2_hyp_uart, x3, x14, 2
+    	// get_index x2, x13, 2
+	    // set_block bootstrap_pt_l2_hyp_uart, x2, x12, 2
+    	// get_index x3, x15, 2
+	    // set_block_dev bootstrap_pt_l2_hyp_uart, x3, x14, 2
 
-//     	adrp	x0, bootstrap_pt_l0
-// 	    mov	x1, PAGE_SIZE * 4
-//     	mov	x2, DCACHE_INVALIDATE_ASM
+    	adrp	x0, bootstrap_pt_l0
+	    // mov	x1, PAGE_SIZE * 4
+    	// mov	x2, DCACHE_INVALIDATE_ASM
 
-//         /* will return to our caller */
-// 	    b	arm_dcaches_flush // todo
-        eret
+        /* will return to our caller */
+	    // b	arm_dcaches_flush // todo
+        ret
         ",
         options(noreturn),
     );
 }
 
-// global_asm!(include_str!("./init_pt.S"));
+#[naked]
+#[no_mangle]
+pub unsafe extern "C" fn enable_mmu_el2() -> i32 {
+    core::arch::asm!(
+        "
+        /* setup the MMU for EL2 hypervisor mappings */
+    	ldr	x1, =DEFAULT_MAIR_EL2
+	    msr	mair_el2, x1
 
-// pub unsafe extern "C" fn enable_mmu_el2() -> i32 {
-//     core::arch::asm!(
-//         "
-//         /* setup the MMU for EL2 hypervisor mappings */
-//     	ldr	x1, ={DEFAULT_MAIR_EL2}
-// 	    msr	mair_el2, x1
+        ldr	x1, =TCR
+    	msr	tcr_el2, x1
 
-//         ldr	x1, =({T0SZ}(48) | ({TCR_RGN_WB_WA} << {TCR_IRGN0_SHIFT})	\
-//     			       | ({TCR_RGN_WB_WA} << {TCR_ORGN0_SHIFT})	\
-// 	    		       | ({TCR_INNER_SHAREABLE} << {TCR_SH0_SHIFT})	\
-// 		    	       | {TCR_EL2_RES1})
+    	msr	ttbr0_el2, x0
 
+    	isb
+	    tlbi	alle2
+	    dsb	nsh
+
+    	/* Enable MMU, allow cacheability for instructions and data */
+	    ldr	x1, =SCTLR
+	    msr	sctlr_el2, x1
+
+    	isb
+	    tlbi	alle2
+	    dsb	nsh
+
+    	ret    
+        ",
 //         mrs     x9, id_aa64mmfr0_el1
 //     	/* Narrow PARange to fit the PS field in TCR_ELx */
 // 	    ubfx    x9, x9, #{ID_AA64MMFR0_PARANGE_SHIFT}, #3
 // 	    bfi     x1, x9, #{TCR_PS_SHIFT}, #3
-
-//     	msr	tcr_el2, x1
-
-//     	msr	ttbr0_el2, x0
-
-//     	isb
-// 	    tlbi	alle2
-// 	    dsb	nsh
-
-//     	/* Enable MMU, allow cacheability for instructions and data */
-// 	    ldr	x1, =({SCTLR_I_BIT} | {SCTLR_C_BIT} | {SCTLR_M_BIT} | {SCTLR_EL2_RES1})
-// 	    msr	sctlr_el2, x1
-
-//     	isb
-// 	    tlbi	alle2
-// 	    dsb	nsh
-
-//     	ret    
-//         ",
-//         DEFAULT_MAIR_EL2 = sym crate::consts::DEFAULT_MAIR_EL2,
-//         T0SZ = sym crate::consts::T0SZ,
-//         TCR_RGN_WB_WA = sym crate::consts::TCR_RGN_WB_WA,
-//         TCR_IRGN0_SHIFT = sym crate::consts::TCR_IRGN0_SHIFT,
-//         TCR_ORGN0_SHIFT = sym crate::consts::TCR_ORGN0_SHIFT,
-//         TCR_INNER_SHAREABLE = sym crate::consts::TCR_INNER_SHAREABLE,
-//         TCR_SH0_SHIFT = sym crate::consts::TCR_SH0_SHIFT,
-//         TCR_EL2_RES1 = sym crate::consts::TCR_EL2_RES1,
 //         ID_AA64MMFR0_PARANGE_SHIFT = sym crate::consts::ID_AA64MMFR0_PARANGE_SHIFT,
 //         TCR_PS_SHIFT = sym crate::consts::TCR_PS_SHIFT,
-//         SCTLR_I_BIT = sym crate::consts::SCTLR_I_BIT,
-//         SCTLR_C_BIT = sym crate::consts::SCTLR_C_BIT,
-//         SCTLR_M_BIT = sym crate::consts::SCTLR_M_BIT,
-//         SCTLR_EL2_RES1 = sym crate::consts::SCTLR_M_BIT,
-//         options(noreturn),
-//     );
-// }
+        options(noreturn),
+    );
+}
 
-// #[naked]
+#[naked]
 #[no_mangle]
 pub unsafe extern "C" fn arch_entry() -> i32 {
     core::arch::asm!(

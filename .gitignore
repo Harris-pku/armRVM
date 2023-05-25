@@ -12,5 +12,6 @@
 /dev/user-data
 /dev/user-data.img
 /dev/jailhouse
+/guest
 /jailrvm
 /.vscode

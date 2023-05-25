@@ -1,5 +1,6 @@
 // use crate::consts::{PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
 // use crate::error::HvResult;
+#![allow(dead_code)]
 use crate::memory::VirtAddr;
 
 #[derive(Debug, Eq, PartialEq)]

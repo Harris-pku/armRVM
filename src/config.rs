@@ -1,10 +1,10 @@
+#![allow(dead_code)]
 use core::fmt::{Debug/*, Formatter, Result*/};
 // use core::{mem::size_of, slice};
 
 // use crate::error::HvResult;
 use crate::memory::MemFlags;
 
-#[warn(unused_variables)]
 const CONFIG_SIGNATURE: [u8; 6] = *b"RVMSYS";
 const CONFIG_REVISION: u16 = 10;
 
@@ -74,8 +74,6 @@ pub struct HvSystemConfig {
     // CellConfigLayout placed here.
 }
 
-#[macro_use]
-#[warn(dead_code)]
 impl HvSystemConfig {
     pub fn get<'a>() -> &'a Self {
         unsafe { &*crate::consts::hv_config_ptr() }

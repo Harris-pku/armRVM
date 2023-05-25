@@ -21,12 +21,23 @@ SECTIONS
 	.data		: { *(.data .data.*) *(.got .got.*) }
 
 	. = ALIGN(4K);
+	.bootstrap_page_tables : { bootstrap_pt_l0 = .; 
+							. = . + (1 << 12); bootstrap_pt_l1_hyp_uart = .; 
+							. = . + (1 << 12); bootstrap_pt_l1_trampoline = .; 
+							. = . + (1 << 12); bootstrap_pt_l2_hyp_uart = .; 
+							. = . + (1 << 12); } .trampoline : { __trampoline_start = .; *(.trampoline) }
+
+	. = ALIGN(4K);
 	.bss		: { *(.bss .bss.*) *(COMMON) }
+
+	. = ALIGN(4K);
+	. = . + 0x4000; 
+    __boot_stack = .; 
 
 	. = ALIGN(4K);
 	__core_end = .;
 
-    __entry_offset = arch_entry - BASE_ADDRESS;
+	__entry_offset = arch_entry - BASE_ADDRESS;
 	__core_size = __core_end - BASE_ADDRESS;
 
 	/DISCARD/ : { *(.comment) *(.gnu*) *(.note*) *(.eh_frame*) }

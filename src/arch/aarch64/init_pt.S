@@ -1,3 +1,9 @@
+	PTE_TABLE_FLAGS=0x3
+	PAGE_FLAG_DEVICE=0x4
+	PAGE_DEFAULT_FLAGS=0x741
+	DEFAULT_MAIR_EL2=0x004404ff
+	SCTLR=0x30c51835
+	TCR=0x80803510
 /*
  * macros used by init_bootstrap_pt
  */
@@ -33,53 +39,3 @@
 .macro	get_index idx, addr, lvl
 	ubfx	\idx, \addr, #(12 + (3 - \lvl) * 9), 9
 .endm
-
-/*
- * These are the default vectors. They are used on early startup and if no
- * Spectre v2 mitigation is available.
- */
-	.align 11
-hyp_vectors:
-	ventry	.
-	ventry	.
-	ventry	.
-	ventry	.
-
-	handle_vmexit arch_el2_abt
-	ventry	.
-	ventry	.
-	ventry	.
-
-	handle_vmexit arch_handle_trap
-	handle_vmexit irqchip_handle_irq
-	ventry	.
-	ventry	.
-
-	handle_vmexit arch_handle_trap
-	handle_vmexit irqchip_handle_irq
-	ventry	.
-	ventry	.
-
-
-	.align 11
-	.globl hyp_vectors_hardened
-hyp_vectors_hardened:
-	ventry	.
-	ventry	.
-	ventry	.
-	ventry	.
-
-	handle_vmexit arch_el2_abt /* no mitigation, we're doomed anyway... */
-	ventry	.
-	ventry	.
-	ventry	.
-
-	handle_abort_fastpath
-	handle_vmexit_hardened irqchip_handle_irq
-	ventry	.
-	ventry	.
-
-	handle_abort_fastpath
-	handle_vmexit irqchip_handle_irq
-	ventry	.
-	ventry	.

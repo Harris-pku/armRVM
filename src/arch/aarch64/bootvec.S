@@ -22,7 +22,7 @@ bootstrap_vectors:
 	ventry	.
 	ventry	.
 
-	ventry	.//el2_entry
+	ventry	el2_entry
 	ventry	.
 	ventry	.
 	ventry	.

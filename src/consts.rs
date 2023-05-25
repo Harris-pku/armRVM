@@ -22,33 +22,11 @@ pub const HV_HEADER_PTR: *const HvHeader = __header_start as _;
 /// Pointer of the per-CPU data array.
 pub const PER_CPU_ARRAY_PTR: *mut PerCpu = __core_end as _;
 
-// pub const DEFAULT_MAIR_EL2: usize = 0x00000000004404ff;
+// pub const DEFAULT_MAIR_EL2: usize = 0x004404ff;
 
 // pub const ID_AA64MMFR0_PARANGE_SHIFT: usize = 0;
 
-// pub const T0SZ: usize = 0;
-
-// pub const TCR_RGN_WB_WA: usize = 0x1;
-
-// pub const TCR_IRGN0_SHIFT: usize = 8;
-
-// pub const TCR_ORGN0_SHIFT: usize = 10;
-
-// pub const TCR_INNER_SHAREABLE: usize = 0x3;
-
-// pub const TCR_SH0_SHIFT: usize = 12;
-
-// pub const TCR_EL2_RES1: usize = ((1 << 31) | (1 << 23));
-
 // pub const TCR_PS_SHIFT: usize = 16;
-
-// pub const SCTLR_I_BIT: usize = (1 << 12);
-
-// pub const SCTLR_C_BIT: usize = (1 << 2);
-
-// pub const SCTLR_M_BIT: usize = (1 << 0);
-
-// pub const SCTLR_EL2_RES1: usize = ((3 << 4) | (1 << 11) | (1 << 16) | (1 << 18)	| (3 << 22) | (3 << 28));
 
 /// Pointer of the `HvSystemConfig` structure.
 pub fn hv_config_ptr() -> *const HvSystemConfig {

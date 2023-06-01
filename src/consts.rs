@@ -1,4 +1,4 @@
-#[warn(unused_variables)]
+#![warn(unused_variables)]
 use crate::config::HvSystemConfig;
 use crate::header::HvHeader;
 use crate::memory::addr::{align_up, VirtAddr};

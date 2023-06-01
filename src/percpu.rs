@@ -11,12 +11,13 @@ use core::fmt::{Debug, Formatter, Result};
 use core::sync::atomic::{AtomicU32, Ordering};
 static ENTERED_CPUS: AtomicU32 = AtomicU32::new(0);
 static ACTIVATED_CPUS: AtomicU32 = AtomicU32::new(0);
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct GeneralRegisters {
-    pub exit_reason: u64,
-    pub usr: [u64; 31],
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum CpuState {
+    HvDisabled,
+    HvEnabled,
 }
+
 #[repr(C, align(4096))]
 pub struct PerCpu {
     /// Referenced by arch::cpu::thread_pointer() for x86_64.

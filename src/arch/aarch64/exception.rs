@@ -1,10 +1,11 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 use super::entry::vmreturn;
-// use crate::header::{HvHeaderStuff, HEADER_STUFF};
+use crate::header::{HvHeaderStuff, HEADER_STUFF};
 use crate::hypercall::HyperCall;
 use crate::percpu::PerCpu;
-use crate::percpu::{this_cpu_data, GeneralRegisters};
+use crate::percpu::this_cpu_data;
+use super::regs::GeneralRegisters;
 use aarch64_cpu::{asm, registers::*};
 use tock_registers::interfaces::*;
 #[allow(dead_code)]
@@ -75,7 +76,7 @@ fn handle_hvc(frame: &TrapFrame) {
         return;
     }
     */
-    let (code, arg0, arg1) = (frame.regs.usr[0], frame.regs.usr[1], frame.regs.usr[2]);
+    let (code, arg0, arg1) = (frame.regs.x[0], frame.regs.x[1], frame.regs.x[2]);
     let cpu_data = unsafe { this_cpu_data() as &mut PerCpu };
     HyperCall::new(cpu_data).hypercall(code as _, arg0, arg1);
 }

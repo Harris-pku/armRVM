@@ -105,6 +105,7 @@ fn primary_init_late() {
     INIT_LATE_OK.store(1, Ordering::Release);
 }
 
+#[allow(unused_variables)]
 fn main(cpuid: u32, cpu_data: &mut PerCpu) -> HvResult {
     println!("Hello");
     let is_primary = cpu_data.id == 0;

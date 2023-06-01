@@ -18,10 +18,10 @@ patch -f -p1 < ../rvmarm.patch
 make
 
 # Generate a grub config file
-# sudo update-grub
+sudo update-grub
 
 # echo
 # echo "Setup OK!"
 # echo "Press ENTER to reboot..."
 # read
-# sudo reboot
+sudo reboot

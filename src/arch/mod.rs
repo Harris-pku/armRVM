@@ -1,3 +1,1 @@
-mod aarch64;
-
-pub use self::aarch64::*;
+pub mod arch;

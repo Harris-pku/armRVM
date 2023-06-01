@@ -4,7 +4,7 @@ STATS ?= off
 PORT ?= 30022
 
 # do not support debug mode
-MODE := release
+MODE := debug
 
 export MODE
 export LOG

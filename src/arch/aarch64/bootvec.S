@@ -1,10 +1,4 @@
-.macro virt2phys, register
-    add	\register, \register, x11
-.endm
 
-.macro phys2virt, register
-    sub	\register, \register, x11
-.endm
 
 .macro	ventry	label
 	.align	7
@@ -22,7 +16,7 @@ bootstrap_vectors:
 	ventry	.
 	ventry	.
 
-	ventry	el2_entry
+	ventry	{0}
 	ventry	.
 	ventry	.
 	ventry	.

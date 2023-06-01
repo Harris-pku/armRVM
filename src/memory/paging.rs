@@ -1,5 +1,6 @@
+#![allow(dead_code)]
 #[repr(usize)]
-#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum PageSize {
     Size4K = 0x1000,
     Size2M = 0x20_0000,

@@ -45,22 +45,15 @@
 //!     |                                      |
 //!     +--------------------------------------+ - hv_end (higher address)
 //!
-
 pub mod addr;
 pub mod heap;
 mod paging;
-
-use bitflags::bitflags;
-use crate::config::HvSystemConfig;
-use crate::consts::HV_BASE;
-// use crate::error::HvResult;
-// use crate::header::HvHeader;
-
-pub use addr::{GuestPhysAddr, GuestVirtAddr, HostPhysAddr, HostVirtAddr, PhysAddr, VirtAddr};
-
 pub const PAGE_SIZE: usize = paging::PageSize::Size4K as usize;
 
+use bitflags::bitflags;
+
 bitflags! {
+    #[derive(Clone, Copy, Debug)]
     pub struct MemFlags: u64 {
         const READ          = 1 << 0;
         const WRITE         = 1 << 1;
@@ -72,11 +65,12 @@ bitflags! {
     }
 }
 
+
+
 pub fn init_heap() {
     // Set PHYS_VIRT_OFFSET early.
     unsafe {
-        addr::PHYS_VIRT_OFFSET =
-            HV_BASE - HvSystemConfig::get().hypervisor_memory.phys_start as usize
+        addr::PHYS_VIRT_OFFSET =0xffff_4060_0000;
     };
     heap::init();
 }

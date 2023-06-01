@@ -14,10 +14,10 @@ add-symbol-file ./guest/rvmarm/driver/jailhouse.ko 0xffff000001167000 -s .data 0
 b enter_hypervisor
 0x0000ffffc0200800
 0xffff00000
-sudo insmod jailhouse/driver/jailhouse.ko
-sudo jailhouse enable jailhouse/configs/arm64/qemu-arm64.cell
+sudo insmod ./driver/jailhouse.ko
+sudo jailhouse enable ./configs/arm64/qemu-arm64.cell
 cd /sys/module/jailhouse/sections
-add-symbol-file hypervisor/hypervisor.o 0x7fc00800   el2时(未初始化mmu el2) 
+add-symbol-file ./guest/rvmarm/hypervisor/hypervisor.o 0x7fc00800   el2时(未初始化mmu el2) 
 
 arch_entry在el1 不定
 el2_entry在el2 0x7fc04070
@@ -26,6 +26,6 @@ el2_entry在el2 0x7fc04070
 b mmu_el2 0x7fc04090
 ret 0x7fc13034
     0xffff40600000
-add-symbol-file hypervisor/hypervisor.o 0xffffc0200800  el2时(初始化mmu el2后) 
+add-symbol-file ./guest/rvmarm/hypervisor/hypervisor.o 0xffffc0200800  el2时(初始化mmu el2后) 
 
 qemu-system-aarch64	-m 1G -cpu cortex-a57 -smp 1 -machine virt,gic-version=3,virtualization=on -nographic -pflash flash0.img -pflash flash1.img -drive if=none,file=ubuntu-18.04-server-cloudimg-arm64.img,id=hd0 -drive file=user-data.img,format=raw,id=cloud -device virtio-blk-device,drive=hd0 -net user,id=net,hostfwd=tcp::30022-:22 -net nic -serial mon:stdio -s -S

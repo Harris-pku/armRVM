@@ -1,43 +1,50 @@
-use {
-    core::fmt,
-    log::{self, Level, LevelFilter, Log, Metadata, Record},
-};
+use core::fmt::{self, Write};
 
-pub fn init() {
-    log::set_logger(&SimpleLogger).unwrap();
-    log::set_max_level(match option_env!("LOG") {
-        Some("error") => LevelFilter::Error,
-        Some("warn") => LevelFilter::Warn,
-        Some("info") => LevelFilter::Info,
-        Some("debug") => LevelFilter::Debug,
-        Some("trace") => LevelFilter::Trace,
-        _ => LevelFilter::Off,
-    });
+use log::{self, Level, LevelFilter, Log, Metadata, Record};
+use spin::Mutex;
+
+use crate::device::uart;
+
+static PRINT_LOCK: Mutex<()> = Mutex::new(());
+struct Stdout;
+
+impl Write for Stdout {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for c in s.chars() {
+            match c {
+                '\n' => {
+                    uart::console_putchar(b'\r');
+                    uart::console_putchar(b'\n');
+                }
+                _ => uart::console_putchar(c as u8),
+            }
+        }
+        Ok(())
+    }
 }
 
-#[allow(dead_code)]
 pub fn print(args: fmt::Arguments) {
-    crate::arch::serial::putfmt(args);
+    let _locked = PRINT_LOCK.lock();
+    Stdout.write_fmt(args).unwrap();
 }
 
-#[cfg(not(test))]
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ({
-        $crate::logging::print(format_args!($($arg)*));
-    });
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        $crate::logging::print(format_args!($fmt $(, $($arg)+)?));
+    }
 }
 
-#[cfg(not(test))]
 #[macro_export]
 macro_rules! println {
-    ($fmt:expr) => (print!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
+    () => { print!("\n") };
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        $crate::logging::print(format_args!(concat!($fmt, "\n") $(, $($arg)+)?));
+    }
 }
 
-/// Add escape sequence to print with color in Linux console
 macro_rules! with_color {
-    ($color_code: expr, $($arg:tt)*) => {{
+    ($color_code:expr, $($arg:tt)*) => {{
         format_args!("\u{1B}[{}m{}\u{1B}[m", $color_code as u8, format_args!($($arg)*))
     }};
 }
@@ -63,20 +70,34 @@ enum ColorCode {
     BrightWhite = 97,
 }
 
+pub fn init() {
+    static LOGGER: SimpleLogger = SimpleLogger;
+    log::set_logger(&LOGGER).unwrap();
+    log::set_max_level(match option_env!("LOG") {
+        Some("error") => LevelFilter::Error,
+        Some("warn") => LevelFilter::Warn,
+        Some("info") => LevelFilter::Info,
+        Some("debug") => LevelFilter::Debug,
+        Some("trace") => LevelFilter::Trace,
+        _ => LevelFilter::Off,
+    });
+}
+
 struct SimpleLogger;
 
 impl Log for SimpleLogger {
     fn enabled(&self, _metadata: &Metadata) -> bool {
         true
     }
+
     fn log(&self, record: &Record) {
         if !self.enabled(record.metadata()) {
             return;
         }
 
-        let time_micros = crate::arch::cpu::current_time_nanos() / 1000;
-        let cpu_id = crate::percpu::PerCpu::current().id;
         let level = record.level();
+        let line = record.line().unwrap_or(0);
+        let target = record.target();
         let level_color = match level {
             Level::Error => ColorCode::BrightRed,
             Level::Warn => ColorCode::BrightYellow,
@@ -91,16 +112,14 @@ impl Log for SimpleLogger {
             Level::Debug => ColorCode::Cyan,
             Level::Trace => ColorCode::BrightBlack,
         };
-
         print(with_color!(
             ColorCode::White,
-            "[{:>4}.{:06} {} {} {}\n",
-            time_micros / 1_000_000,
-            time_micros % 1_000_000,
+            "[{} {} {}\n",
             with_color!(level_color, "{:<5}", level),
-            with_color!(ColorCode::White, "{}]", cpu_id),
+            with_color!(ColorCode::White, "{}:{}]", target, line),
             with_color!(args_color, "{}", record.args()),
         ));
     }
+
     fn flush(&self) {}
 }

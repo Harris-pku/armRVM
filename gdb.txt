@@ -10,7 +10,7 @@ cd /sys/module/jailhouse/sections
 sudo cat .text
 sudo cat .data
 sudo cat .bss
-add-symbol-file ./guest/rvmarm/driver/jailhouse.ko 0xffff000001167000 -s .data 0xffff00000116d0c0 -s .bss 0xffff00000116da80
+add-symbol-file ./guest/rvmarm/driver/jailhouse.ko 0xffff00000117b000 -s .data 0xffff0000011810c0 -s .bss 0xffff000001181a80
 b enter_hypervisor
 0x0000ffffc0200800
 0xffff00000

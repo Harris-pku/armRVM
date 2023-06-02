@@ -1,5 +1,5 @@
-#![allow(dead_code)]
 #![allow(unused_imports)]
+#![allow(unused_variables)]
 use core::{
     arch::asm,
     marker::PhantomData,
@@ -11,8 +11,10 @@ use aarch64_cpu::registers::ESR_EL2::EC::Value;
 use aarch64_cpu::registers::*;
 use tock_registers::interfaces::{ReadWriteable, Readable, Writeable};
 
+use crate::cell::Cell;
 use crate::error::HvResult;
 use super::regs::GeneralRegisters;
+use crate::memory::addr::{GuestPhysAddr, HostPhysAddr};
 
 #[repr(C)]
 pub struct Vcpu {
@@ -26,7 +28,11 @@ pub struct Vcpu {
 }
 #[allow(unused_mut)]
 impl Vcpu {
-    pub fn new() -> HvResult<Self> {
+    pub fn new(
+        entry: GuestPhysAddr,
+        cpu_id: u64,
+        cell: &Cell,
+    ) -> HvResult<Self> {
         let mut ret = Self {
             guest_regs: GeneralRegisters::default(),
             guest_sp: 0,

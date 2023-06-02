@@ -41,9 +41,7 @@ pub unsafe extern "C" fn boot_pt() -> i32 {
     
         adrp	x0, bootstrap_pt_l0  //phy addr
         /*  TODO: flush dcache */
-        ret
-    
-        
+        ret        
         
     ",
         options(noreturn),
@@ -59,10 +57,10 @@ pub unsafe extern "C" fn enable_mmu() -> i32 {
         * x0: u64 ttbr0_el2
         */
    
-       /* setup the MMU for EL2 hypervisor mappings */
-       ldr	x1, =MAIR_FLAG
-       msr	mair_el2, x1
-       ldr	x1, =TCR_FLAG
+        /* setup the MMU for EL2 hypervisor mappings */
+        ldr	x1, =MAIR_FLAG
+        msr	mair_el2, x1
+        ldr	x1, =TCR_FLAG
 	    msr	tcr_el2, x1
 
 	    msr	ttbr0_el2, x0
@@ -125,13 +123,12 @@ pub unsafe extern "C" fn vmreturn(_gu_regs: usize) -> i32 {
 pub unsafe extern "C" fn virt2phys_el2(_gu_regs: usize, page_offset: u64) -> i32 {
     core::arch::asm!(
         "
-	    adr	x30, {0}	/* set lr shutdown_el2 */
+	    adr	x30, {0}	        /* set lr shutdown_el2 */
 	    sub x30, x30, x1 		/* virt2phys */
-        sub x0, x0, x1 		/* virt2phys */
+        sub x0, x0, x1 		    /* virt2phys */
         ret
     ",
         sym shutdown_el2,
-
         options(noreturn),
 
     );

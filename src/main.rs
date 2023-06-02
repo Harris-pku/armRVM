@@ -125,7 +125,7 @@ fn main(cpuid: u32, cpu_data: &mut PerCpu) -> HvResult {
     }
 
     // cpu_data.init(linux_sp, cell::root_cell())?;
-    cpu_data.init(cell::root_cell())?;
+    // cpu_data.init(cell::root_cell())?;
     println!("CPU {} init OK.", cpu_data.id);
     // INITED_CPUS.fetch_add(1, Ordering::SeqCst);
     // wait_for_counter(&INITED_CPUS, online_cpus)?;

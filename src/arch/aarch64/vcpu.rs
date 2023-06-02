@@ -48,5 +48,18 @@ impl Vcpu {
         };
         Ok(ret)
     }
+
+    pub fn cpu_id(&self) -> u64 {
+        self.cpu_id
+    }
+
+    pub fn regs(&self) -> &GeneralRegisters {
+        &self.guest_regs
+    }
+
+    pub fn regs_mut(&mut self) -> &mut GeneralRegisters {
+        &mut self.guest_regs
+    }
+    
     // pub fn enter(&mut self) -> HvResult {}
 }

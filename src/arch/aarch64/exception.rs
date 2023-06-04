@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+#![allow(unused_must_use)]
 use super::entry::vmreturn;
 use crate::header::{HvHeaderStuff, HEADER_STUFF};
 use crate::hypercall::HyperCall;
@@ -41,7 +42,6 @@ impl<'a> TrapFrame<'a> {
         }
     }
 }
-#[allow(unused_assignments)]
 /*From hyp_vec->handle_vmexit x0:guest regs x1:exit_reason sp =stack_top-32*8*/
 pub fn arch_handle_exit(regs: &GeneralRegisters) -> Result<(), ()> {
     match regs.exit_reason as u64 {
@@ -68,7 +68,6 @@ fn arch_handle_trap(regs: &GeneralRegisters) {
         }
     }
 }
-#[allow(unused_must_use)]
 #[allow(unused_unsafe)]
 fn handle_hvc(frame: &TrapFrame) {
     /*
@@ -76,8 +75,11 @@ fn handle_hvc(frame: &TrapFrame) {
         return;
     }
     */
+    info!("Handel hvc");
     let (code, arg0, arg1) = (frame.regs.x[0], frame.regs.x[1], frame.regs.x[2]);
     let cpu_data = unsafe { this_cpu_data() as &mut PerCpu };
+    info!("cpu data{:#x?}", &cpu_data as *const _);
+    info!("cpuid{} vaddr{:#x?}", cpu_data.id, cpu_data.self_vaddr);
     HyperCall::new(cpu_data).hypercall(code as _, arg0, arg1);
 }
 fn arch_dump_exit() {}

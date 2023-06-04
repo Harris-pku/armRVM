@@ -31,7 +31,7 @@ impl Vcpu {
     pub fn new(
         entry: GuestPhysAddr,
         cpu_id: u64,
-        cell: &Cell,
+        // cell: &Cell,
     ) -> HvResult<Self> {
         let mut ret = Self {
             guest_regs: GeneralRegisters::default(),

@@ -136,3 +136,55 @@ sudo reboot
 
 ## 3.调试armRVM
 
+### 3.调试armRVM
+
+```shell
+sudo apt-get install gdb-multiarch
+```
+
+在qemu启动参数中加入-s -S，qemu会在1234端口打开一个gdbserver，在启动时等待gdb进行连接，为了调试方便，先启用一个核
+
+```shell
+qemu-system-aarch64	-m 1G -cpu cortex-a57 -smp 1 -machine virt,gic-version=3,virtualization=on -nographic -pflash flash0.img -pflash flash1.img -drive if=none,file=ubuntu-18.04-server-cloudimg-arm64.img,id=hd0 -drive file=user-data.img,format=raw,id=cloud -device virtio-blk-device,drive=hd0 -net user,id=net,hostfwd=tcp::30022-:22 -net nic -serial mon:stdio -s -S
+```
+
+#### 启动gdb
+
+```shell
+gdb-multiarch
+target remote:1234
+set arch aarch64
+```
+
+然后输入`c`启动qemu
+
+#### gdb跟踪jailhouse.ko
+
+获取driver的段地址
+
+```shell
+cd /sys/module/jailhouse/sections
+cat .text
+cat .data
+cat .bss
+```
+
+将driver的信息传给gdb，在enter_hypervisor处打断点
+
+```gdb
+add-symbol-file ../guest/rvmarm/driver/jailhouse.ko 0xffff000001167000 -s .data 0xffff00000116d0c0 -s .bss 0xffff00000116da80
+b enter_hypervisor
+```
+
+此时可以正常调试driver
+
+#### gdb调试rust代码
+
+在main.rs的primary_init_early处打断点
+
+```
+add-symbol-file target/aarch64/debug/rvmarm
+b primary_init_early
+```
+
+此时可以进入main函数之后调试rust代码

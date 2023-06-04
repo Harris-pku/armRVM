@@ -1,4 +1,5 @@
-#![warn(unused_variables)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
 use crate::config::HvSystemConfig;
 use crate::header::HvHeader;
 use crate::memory::addr::{align_up, VirtAddr};
@@ -8,8 +9,10 @@ pub use crate::memory::PAGE_SIZE;
 pub const HV_HEAP_SIZE: usize = 1024 * 1024; // 1 MB
 
 /// Size of the per-CPU data (stack and other CPU-local data).
-pub const PER_CPU_SIZE: usize = 1024; // 1KB
+pub const PER_CPU_SIZE: usize = 32 * 1024; // 32KB  //may get bigger when dev
 
+/// Size of the per cpu boot stack
+pub const PER_CPU_BOOT_SIZE: usize = 1024; // 1KB
 /// Start virtual address of the hypervisor memory.
 pub const HV_BASE: usize = 0xffffc0200000;
 

@@ -1,9 +1,10 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 use super::exception::arch_handle_exit;
-use crate::consts::{HV_HEADER_PTR, PER_CPU_SIZE};
-use crate::percpu::PerCpu;
+use crate::consts::{HV_HEADER_PTR, PER_CPU_BOOT_SIZE, PER_CPU_SIZE};
 use crate::device::uart::{UART_BASE_PHYS, UART_BASE_VIRT};
+use crate::header::HvHeader;
+use crate::percpu::PerCpu;
 use core::arch::global_asm; // 支持内联汇编
 global_asm!(include_str!("./page_table.S"),);
 global_asm!(
@@ -13,6 +14,74 @@ global_asm!(
 global_asm!(
     include_str!("./hyp_vec.S"),
     sym arch_handle_exit);
+#[naked]
+#[no_mangle]
+pub unsafe extern "C" fn arch_entry() -> i32 {
+    core::arch::asm!(
+        "
+    
+            mov	x16, x0                             //x16 cpuid
+            mov	x17, x30                            //x17 linux ret addr
+            /*
+            *TODO:1 change header or config read step into a singe not naked func
+            *      2 just read them depend on offset         
+            */
+            /*get header addr el1*/
+            adrp x0,__header_start
+            ldrh	w2, [x0, #48]                  //HEADER_MAX_CPUS
+            mov	x3, {per_cpu_size}
+            adrp x1,__core_end
+            /*
+	        * sysconfig = pool + max_cpus * percpu_size
+	        */
+	        madd	x1, x2, x3, x1 //get config addr
+            ldr	x13, =BASE_ADDRESS 
+            ldr	x12, [x1, #12]                      //phyaddr read from config
+            ldr x14, [x1, #44]                      //SYSCONFIG_DEBUG_CONSOLE_PHYS
+            ldr x15, ={uart_base_virt}              //consts
+            sub	x11, x12, x13                       //x11= (el2 mmu on)virt-phy offset 
+            ldr	x1, =bootstrap_vectors
+            virt2phys x1       
+    
+            /* choose opcode */
+            mov	x0, 0
+            hvc	#0                                  //install bootstrap vec
+    
+            hvc	#0	                                /* bootstrap vectors enter EL2 at el2_entry */
+                                                    //tmp return here =ELR_EL2
+            mov x0, 0                              //return success code to jailhouse driver                       
+            ret
+    
+        ",
+        per_cpu_size=const PER_CPU_SIZE,
+        uart_base_virt=const UART_BASE_VIRT,
+        options(noreturn),
+    );
+}
+#[naked]
+#[no_mangle]
+pub unsafe extern "C" fn el2_entry() -> i32 {
+    core::arch::asm!(
+        "
+        mrs	x1, esr_el2      //  Exception Syndrome Register
+        lsr	x1, x1, #26      // EC, bits [31:26]
+        cmp	x1, #0x16           // hvc ec value
+        b.ne	.		/* not hvc */
+        bl {0}          /*set boot pt*/
+        adr	x0, bootstrap_pt_l0
+	    adr	x30, {2}	/* set lr switch_stack phy-virt*/
+	    phys2virt x30		
+	    b	{1}         /*enable mmu*/
+        eret
+    ",
+        sym boot_pt,
+        sym enable_mmu,
+        sym switch_stack,
+
+        options(noreturn),
+
+    );
+}
 #[naked]
 #[no_mangle]
 pub unsafe extern "C" fn boot_pt() -> i32 {
@@ -41,12 +110,15 @@ pub unsafe extern "C" fn boot_pt() -> i32 {
     
         adrp	x0, bootstrap_pt_l0  //phy addr
         /*  TODO: flush dcache */
-        ret        
+        ret
+    
+        
         
     ",
         options(noreturn),
     );
 }
+
 #[naked]
 #[no_mangle]
 #[link_section = ".trampoline"]
@@ -57,10 +129,10 @@ pub unsafe extern "C" fn enable_mmu() -> i32 {
         * x0: u64 ttbr0_el2
         */
    
-        /* setup the MMU for EL2 hypervisor mappings */
-        ldr	x1, =MAIR_FLAG
-        msr	mair_el2, x1
-        ldr	x1, =TCR_FLAG
+       /* setup the MMU for EL2 hypervisor mappings */
+       ldr	x1, =MAIR_FLAG
+       msr	mair_el2, x1
+       ldr	x1, =TCR_FLAG
 	    msr	tcr_el2, x1
 
 	    msr	ttbr0_el2, x0
@@ -76,16 +148,76 @@ pub unsafe extern "C" fn enable_mmu() -> i32 {
 	    isb
 	    tlbi	alle2
 	    dsb	nsh
-        /*TODO: per cpu boot stack*/
+        /*TODO: ??per cpu boot stack  x16:cpuid*/
         adrp	x1, __boot_stack
         phys2virt x1
+        /*
+	    * percpu boot stack = __boot_stack + cpuid * percpu_size
+	    */
+        mov    x0,x16     //switch_stack(cpuid)
+        mov	x2, {per_cpu_boot_size}
+	    madd	x1, x2, x0, x1
         mov    sp,x1      //set boot stack
+        
 
 	    ret        //x30:switch_stack el2 virt_addr
     ",
+        per_cpu_boot_size= const PER_CPU_BOOT_SIZE,
         options(noreturn),
     );
 }
+#[no_mangle]
+pub unsafe extern "C" fn switch_stack(cpuid: u64) -> i32 {
+    let cpu_data = match PerCpu::new(cpuid) {
+        Ok(c) => c,
+        Err(e) => return e.code(),
+    };
+    let hv_sp = cpu_data.stack_top(); //Per_cpu+per_cpu_size-8
+    core::arch::asm!(
+        "/*set per cpu stack el2*/
+        mov	sp, {hv_sp}
+        /* install the final vectors */
+        adr	x1, hyp_vectors
+        msr	vbar_el2, x1
+    
+        mov	x0, {cpu_data}		/* cpudata to entry(cpudata)*/
+
+        /*/* set up the stack  save root cell's callee saved registers x19~x30 */
+        
+        stp	x29, x17, [sp, #-16]!	/* note: our caller lr is in x17 */
+        stp	x27, x28, [sp, #-16]!
+        stp	x25, x26, [sp, #-16]!
+        stp	x23, x24, [sp, #-16]!
+        stp	x21, x22, [sp, #-16]!
+        stp	x19, x20, [sp, #-16]!
+
+        /*
+        * We pad the guest_reg field, so we can consistently access the guest
+        * registers from either the initialization, or the exception
+        * handling code paths. 19 caller saved registers plus the
+        * exit_reason, which we don't use on entry.
+        */
+        sub	sp, sp, 20 * 8
+            
+        mov	x29, xzr	/* reset fp,lr */
+        mov	x30, xzr
+    
+        /* Call entry(struct per_cpu*). Should not return. */
+        bl {entry}
+        eret        //back to ?arch_entry hvc0
+        mov	x30, x17 
+        ret        //return to linux
+
+    
+                
+    ",
+        hv_sp=in(reg) hv_sp,
+        entry = sym crate::entry,
+        cpu_data=in(reg) cpu_data,
+        options(noreturn),
+    );
+}
+
 #[naked]
 #[no_mangle]
 #[link_section = ".trampoline"]
@@ -123,12 +255,13 @@ pub unsafe extern "C" fn vmreturn(_gu_regs: usize) -> i32 {
 pub unsafe extern "C" fn virt2phys_el2(_gu_regs: usize, page_offset: u64) -> i32 {
     core::arch::asm!(
         "
-	    adr	x30, {0}	        /* set lr shutdown_el2 */
+	    adr	x30, {0}	/* set lr shutdown_el2 */
 	    sub x30, x30, x1 		/* virt2phys */
-        sub x0, x0, x1 		    /* virt2phys */
+        sub x0, x0, x1 		/* virt2phys */
         ret
     ",
         sym shutdown_el2,
+
         options(noreturn),
 
     );
@@ -174,124 +307,6 @@ pub unsafe extern "C" fn shutdown_el2(_gu_regs: usize) -> i32 {
         eret                            //ret to el2_entry hvc #0 now,depend on ELR_EL2
         
     ",
-        options(noreturn),
-    );
-}
-#[no_mangle]
-pub unsafe extern "C" fn switch_stack() -> i32 {
-    let per_cpu_size = PER_CPU_SIZE;
-    let cpu_data = match PerCpu::new() {
-        Ok(c) => c,
-        Err(e) => return e.code(),
-    };
-    let hv_sp = cpu_data.stack_top(); //Per_cpu+per_cpu_size-8
-    core::arch::asm!(
-        "/*set per cpu stack el2*/
-        mov	sp, {hv_sp}
-        /* install the final vectors */
-        adr	x1, hyp_vectors
-        msr	vbar_el2, x1
-    
-        mov	x0, x16		/* preserved cpuid, will be passed to entry */
-        adrp	x1, __core_end
-        mov	x2, {per_cpu_size}
-        /*
-         * percpu data = pool + cpuid * percpu_size
-         */
-        madd	x1, x2, x0, x1
-
-        /*/* set up the stack  save root cell's callee saved registers x19~x30 */
-        
-        stp	x29, x17, [sp, #-16]!	/* note: our caller lr is in x17 */
-        stp	x27, x28, [sp, #-16]!
-        stp	x25, x26, [sp, #-16]!
-        stp	x23, x24, [sp, #-16]!
-        stp	x21, x22, [sp, #-16]!
-        stp	x19, x20, [sp, #-16]!
-
-        /*
-        * We pad the guest_reg field, so we can consistently access the guest
-        * registers from either the initialization, or the exception
-        * handling code paths. 19 caller saved registers plus the
-        * exit_reason, which we don't use on entry.
-        */
-        sub	sp, sp, 20 * 8
-            
-        mov	x29, xzr	/* reset fp,lr */
-        mov	x30, xzr
-    
-        /* Call entry(cpuid, struct per_cpu*). Should not return. */
-        bl {entry}
-        eret        //back to ?arch_entry hvc0
-        mov	x30, x17 
-        ret        //return to linux
-
-    
-                
-    ",
-        per_cpu_size=in(reg) per_cpu_size,
-        hv_sp=in(reg) hv_sp,
-        entry = sym crate::entry,
-        options(noreturn),
-    );
-}
-#[naked]
-#[no_mangle]
-pub unsafe extern "C" fn el2_entry() -> i32 {
-    core::arch::asm!(
-        "
-        mrs	x1, esr_el2      //  Exception Syndrome Register
-        lsr	x1, x1, #26      // EC, bits [31:26]
-        cmp	x1, #0x16           // hvc ec value
-        b.ne	.		/* not hvc */
-        bl {0}
-        adr	x0, bootstrap_pt_l0
-	    adr	x30, {2}	/* set lr switch_stack phy-virt*/
-	    phys2virt x30		
-	    b	{1}     
-        eret
-    ",
-        sym boot_pt,
-        sym enable_mmu,
-        sym switch_stack,
-
-        options(noreturn),
-
-    );
-}
-
-#[naked]
-#[no_mangle]
-pub unsafe extern "C" fn arch_entry() -> i32 {
-    core::arch::asm!(
-        "
-
-        mov	x16, x0                             //x16 cpuid
-	    mov	x17, x30                            //x17 linux ret addr
-        /*
-        *TODO:1 change header or config read step into a singe not naked func
-        *      2 just read them depend on offset         
-        */
-        ldr	x13, =BASE_ADDRESS 
-        ldr	x12, =0x7fc00000                    //should be read from config file
-        ldr x14, ={uart_base_phys}              //should be read from config file
-        ldr x15, ={uart_base_virt}              //consts
-        sub	x11, x12, x13                       //x11= (el2 mmu)virt-phy offset 
-        ldr	x1, =bootstrap_vectors
-        virt2phys x1       
-
-        /* choose opcode */
-        mov	x0, 0
-        hvc	#0                                  //install bootstrap vec
-
-        hvc	#0	                                /* bootstrap vectors enter EL2 at el2_entry */
-                                     //tmp return here =ELR_EL2
-        mov x0, 0                              //return success code to jailhouse driver                       
-        ret
-
-    ",
-        uart_base_phys=const UART_BASE_PHYS,
-        uart_base_virt=const UART_BASE_VIRT,
         options(noreturn),
     );
 }

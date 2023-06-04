@@ -1,9 +1,9 @@
 ARCH ?= aarch64
-LOG ?=
+LOG ?= trace
 STATS ?= off
 PORT ?= 30022
 
-# do not support debug mode
+# default release mode
 MODE := debug
 
 export MODE
@@ -55,3 +55,7 @@ jailhouse:
 .PHONY: patch
 patch:
 	scp -P $(PORT) ./scripts/guest/rvmarm.patch ubuntu@localhost:/home/ubuntu
+
+.PHONY: rvmbin
+rvmbin:
+	scp -P $(PORT) rvmarm.bin ubuntu@localhost:/home/ubuntu

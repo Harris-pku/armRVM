@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
+#![allow(unused_variables)]
 use crate::error::HvResult;
 use crate::percpu::PerCpu;
 use bit_field::BitField;
@@ -21,7 +22,6 @@ pub struct HyperCall<'a> {
     cpu_data: &'a mut PerCpu,
 }
 
-#[allow(unused_variables)]
 impl<'a> HyperCall<'a> {
     pub fn new(cpu_data: &'a mut PerCpu) -> Self {
         Self { cpu_data }
@@ -48,7 +48,7 @@ impl<'a> HyperCall<'a> {
         while TRY_DISABLE_CPUS.load(Ordering::Acquire) < cpus {
             core::hint::spin_loop();
         }
-
+        info!("Handel hvc disable");
         self.cpu_data.deactivate_vmm(0)?;
         unreachable!()
     }

@@ -1,15 +1,18 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_macros)]
 #![no_std] // 禁用标准库链接
 #![no_main]
 // 不使用main入口，使用自己定义实际入口_start，因为我们还没有初始化堆栈指针
 #![feature(asm_const)]
 #![feature(naked_functions)] //  surpport naked function
 // #![feature(default_alloc_error_handler)]
-// use core::arch::global_asm; // 支持内联汇编
-// use core::result::Result;
-// #[macro_use]
+use core::arch::global_asm;
+// 支持内联汇编
+use core::result::Result;
+#[macro_use]
 extern crate alloc;
-// #[macro_use]
+#[macro_use]
 extern crate buddy_system_allocator;
 #[macro_use]
 mod error;
@@ -38,7 +41,7 @@ use error::HvResult;
 use header::HvHeader;
 use percpu::PerCpu;
 
-use core::sync::atomic::{AtomicU32, AtomicI32, Ordering};
+use core::sync::atomic::{AtomicI32, AtomicU32, Ordering};
 
 static INITED_CPUS: AtomicU32 = AtomicU32::new(0);
 static INIT_EARLY_OK: AtomicU32 = AtomicU32::new(0);
@@ -63,10 +66,9 @@ fn wait_for(condition: impl Fn() -> bool) -> HvResult {
 fn wait_for_counter(counter: &AtomicU32, max_value: u32) -> HvResult {
     wait_for(|| counter.load(Ordering::Acquire) < max_value)
 }
-
 fn primary_init_early() -> HvResult {
     logging::init();
-    info!("Primary CPU init early...");
+    info!("Logging is enabled.");
 
     let system_config = HvSystemConfig::get();
     let revision = system_config.revision;
@@ -93,9 +95,7 @@ fn primary_init_early() -> HvResult {
     memory::init_heap();
     system_config.check()?;
     info!("Hypervisor header: {:#x?}", HvHeader::get());
-    debug!("System config: {:#x?}", system_config);
-
-    memory::init_heap();
+    // debug!("System config: {:#x?}", system_config);
 
     Ok(())
 }
@@ -106,18 +106,17 @@ fn primary_init_late() {
     INIT_LATE_OK.store(1, Ordering::Release);
 }
 
-#[allow(unused_variables)]
-fn main(cpuid: u32, cpu_data: &mut PerCpu) -> HvResult {
+fn main(cpu_data: &mut PerCpu) -> HvResult {
     println!("Hello");
+    println!("cpuid{} vaddr{:#x?}", cpu_data.id, cpu_data.self_vaddr);
     let is_primary = cpu_data.id == 0;
-    // let online_cpus = HvHeader::get().online_cpus;
-    // wait_for(|| PerCpu::entered_cpus() < online_cpus)?;
+    let online_cpus = HvHeader::get().online_cpus;
+    wait_for(|| PerCpu::entered_cpus() < online_cpus)?;
     println!(
         "{} CPU {} entered.",
         if is_primary { "Primary" } else { "Secondary" },
         cpu_data.id
     );
-
     if is_primary {
         primary_init_early()?;
     // } else {
@@ -138,6 +137,6 @@ fn main(cpuid: u32, cpu_data: &mut PerCpu) -> HvResult {
 
     cpu_data.activate_vmm()
 }
-extern "C" fn entry(cpuid: u32, cpu_data: &mut PerCpu) -> () {
-    if let Err(_e) = main(cpuid, cpu_data) {}
+extern "C" fn entry(cpu_data: &mut PerCpu) -> () {
+    if let Err(_e) = main(cpu_data) {}
 }

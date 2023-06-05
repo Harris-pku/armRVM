@@ -6,7 +6,7 @@ use crate::header::{HvHeaderStuff, HEADER_STUFF};
 use crate::hypercall::HyperCall;
 use crate::percpu::PerCpu;
 use crate::percpu::this_cpu_data;
-use super::regs::GeneralRegisters;
+use super::context::GeneralRegisters;
 use aarch64_cpu::{asm, registers::*};
 use tock_registers::interfaces::*;
 #[allow(dead_code)]
@@ -76,7 +76,7 @@ fn handle_hvc(frame: &TrapFrame) {
     }
     */
     info!("Handel hvc");
-    let (code, arg0, arg1) = (frame.regs.x[0], frame.regs.x[1], frame.regs.x[2]);
+    let (code, arg0, arg1) = (frame.regs.usr[0], frame.regs.usr[1], frame.regs.usr[2]);
     let cpu_data = unsafe { this_cpu_data() as &mut PerCpu };
     info!("cpu data{:#x?}", &cpu_data as *const _);
     info!("cpuid{} vaddr{:#x?}", cpu_data.id, cpu_data.self_vaddr);

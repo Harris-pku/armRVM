@@ -13,7 +13,7 @@ use tock_registers::interfaces::{ReadWriteable, Readable, Writeable};
 
 use crate::cell::Cell;
 use crate::error::HvResult;
-use super::regs::GeneralRegisters;
+use super::context::GeneralRegisters;
 use crate::memory::addr::{GuestPhysAddr, HostPhysAddr};
 
 #[repr(C)]

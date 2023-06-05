@@ -3,7 +3,7 @@
 #[derive(Debug, Default, Clone)]
 pub struct GeneralRegisters {
     pub exit_reason: u64,
-    pub x: [u64; 31],
+    pub usr: [u64; 31],
 }
 
 macro_rules! save_regs_to_stack {

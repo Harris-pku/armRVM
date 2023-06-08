@@ -4,8 +4,11 @@
 use core::fmt::{Debug, Formatter, Result};
 use core::sync::atomic::{AtomicU32, Ordering};
 
+// use aarch64_cpu::registers::*;
+
 use crate::arch::vcpu::Vcpu;
 use crate::arch::entry::{shutdown_el2, virt2phys_el2, vmreturn};
+use crate::arch::context::LinuxContext;
 use crate::cell::Cell;
 use crate::consts::{PER_CPU_ARRAY_PTR, PER_CPU_SIZE};
 use crate::error::HvResult;
@@ -29,6 +32,7 @@ pub struct PerCpu {
     pub self_vaddr: VirtAddr,
     pub state: CpuState,
     pub vcpu: Vcpu,
+    linux: LinuxContext,
     // Stack will be placed here.
 }
 
@@ -44,6 +48,12 @@ impl PerCpu {
         let ret = unsafe { &mut *(vaddr as *mut Self) };
         ret.id = cpu_id;
         ret.self_vaddr = vaddr;
+
+        // VTCR_EL2.write(
+        //     VTCR_EL2::T0SZ +
+            
+        // );
+
         Ok(ret)
     }
 
@@ -63,19 +73,18 @@ impl PerCpu {
         ACTIVATED_CPUS.load(Ordering::Acquire)
     }
 
-    pub fn init(&mut self, cell: &Cell) -> HvResult {
+    pub fn init(&mut self) -> HvResult {
         info!("CPU {} init...", self.id);
 
         // Save CPU state used for linux
         self.state = CpuState::HvDisabled;
-        // self.linux = LinuxContext::load_from(linux_sp);
-        // self.arch.init();
+        self.linux = LinuxContext::load_from();
 
         // // Activate hypervisor page table on each cpu.
         // unsafe { crate::memory::hv_page_table().read().activate() };
 
-        // // Initialize vCPU. Use `ptr::write()` to avoid dropping
-        // unsafe { core::ptr::write(&mut self.vcpu, Vcpu::new(&self.linux, cell)?) };
+        // Initialize vCPU. Use `ptr::write()` to avoid dropping
+        unsafe { core::ptr::write(&mut self.vcpu, Vcpu::new(&self.linux, self.id)?) };
 
         self.state = CpuState::HvEnabled;
 

@@ -13,7 +13,7 @@ use tock_registers::interfaces::{ReadWriteable, Readable, Writeable};
 
 use crate::cell::Cell;
 use crate::error::HvResult;
-use super::context::GeneralRegisters;
+use super::context::{GeneralRegisters, LinuxContext};
 use crate::memory::addr::{GuestPhysAddr, HostPhysAddr};
 
 #[repr(C)]
@@ -29,14 +29,14 @@ pub struct Vcpu {
 #[allow(unused_mut)]
 impl Vcpu {
     pub fn new(
-        entry: GuestPhysAddr,
+        linux: &LinuxContext,
         cpu_id: u64,
         // cell: &Cell,
     ) -> HvResult<Self> {
         let mut ret = Self {
             guest_regs: GeneralRegisters::default(),
             guest_sp: 0,
-            elr: entry as u64,
+            elr: 0,
             spsr: (SPSR_EL2::M::EL1h
                 + SPSR_EL2::D::Masked
                 + SPSR_EL2::A::Masked
@@ -46,6 +46,12 @@ impl Vcpu {
             cpu_id,
             host_stack_top: 0,
         };
+        // HCR_EL2.write(
+        //     HCR_EL2::VM::Enable + 
+        //     HCR_EL2::IMO::EnableVirtualIRQ +
+        //     HCR_EL2::FMO::EnableVirtualFIQ +
+        //     HCR_EL2::RW::EL1IsAarch64
+        // );
         Ok(ret)
     }
 

@@ -107,7 +107,7 @@ fn primary_init_late() {
 }
 
 fn main(cpu_data: &mut PerCpu) -> HvResult {
-    println!("Hello");
+    // println!("Hello");
     println!("cpuid{} vaddr{:#x?}", cpu_data.id, cpu_data.self_vaddr);
     let is_primary = cpu_data.id == 0;
     let online_cpus = HvHeader::get().online_cpus;
@@ -124,7 +124,7 @@ fn main(cpu_data: &mut PerCpu) -> HvResult {
     }
 
     // cpu_data.init(linux_sp, cell::root_cell())?;
-    // cpu_data.init(cell::root_cell())?;
+    cpu_data.init()?;
     println!("CPU {} init OK.", cpu_data.id);
     // INITED_CPUS.fetch_add(1, Ordering::SeqCst);
     // wait_for_counter(&INITED_CPUS, online_cpus)?;

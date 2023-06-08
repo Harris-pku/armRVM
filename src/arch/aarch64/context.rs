@@ -1,4 +1,10 @@
 #![allow(unused_macros)]
+use core::arch::asm;
+use aarch64_cpu::asm::barrier;
+use aarch64_cpu::registers::ESR_EL2::EC::Value;
+use aarch64_cpu::registers::*;
+use tock_registers::interfaces::{ReadWriteable, Readable, Writeable};
+
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
 pub struct GeneralRegisters {
@@ -59,4 +65,51 @@ macro_rules! restore_regs_from_stack {
         ldp     x0, x1, [sp]
         add     sp, sp, 34 * 8"
     };
+}
+
+#[derive(Debug)]
+pub struct LinuxContext {
+    pub usr: [u64; 31],
+    pub elr: u64,
+    pub spsr: u64,
+    pub sp: u64,
+}
+
+impl LinuxContext {
+    pub fn new() -> Self {
+        Self {
+            usr: [0; 31],
+            spsr: (SPSR_EL2::M::EL1h
+                + SPSR_EL2::I::Masked
+                + SPSR_EL2::F::Masked
+                + SPSR_EL2::A::Masked
+                + SPSR_EL2::D::Masked)
+                .value as u64,
+            elr: 0,
+            sp: 0,
+        }
+    }
+    pub fn load_from() -> Self {
+        Self {
+            usr: [0; 31],
+            spsr: (SPSR_EL2::M::EL1h
+                + SPSR_EL2::I::Masked
+                + SPSR_EL2::F::Masked
+                + SPSR_EL2::A::Masked
+                + SPSR_EL2::D::Masked)
+                .value as u64,
+            elr: 0,
+            sp: 0,
+        }
+    }
+
+    /// Restore system registers.
+    pub fn restore(&self) {
+
+    }
+
+    // /// Restore linux general-purpose registers and stack, then return back to linux.
+    // pub fn return_to_linux(&self, guest_regs: &GeneralRegisters) -> ! {
+
+    // }
 }

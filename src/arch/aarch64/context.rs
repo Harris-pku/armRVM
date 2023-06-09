@@ -72,8 +72,9 @@ macro_rules! restore_regs_from_stack {
 #[derive(Debug)]
 pub struct LinuxContext {
     pub usr: [u64; 31],
-    pub elr: u64,
     pub spsr: u64,
+    pub elr: u64,
+    pub sctlr: u64,
     pub sp: u64,
 }
 
@@ -89,6 +90,7 @@ impl LinuxContext {
                 + SPSR_EL2::D::Masked)
                 .value as u64,
             elr: 0,
+            sctlr: 0,
             sp: 0,
         }
     }
@@ -98,7 +100,8 @@ impl LinuxContext {
             usr: [0; 31],
             spsr: SPSR_EL2.get(),
             elr: ELR_EL2.get(),
-            sp: 0,
+            sctlr: SCTLR_EL2.get(),
+            sp: SP.get(),
         };
         for i in 0..31 {
             ret.usr[i] = regs[i];
@@ -111,6 +114,8 @@ impl LinuxContext {
         unsafe {
             SPSR_EL2.set(self.spsr);
             ELR_EL2.set(self.elr);
+            SCTLR_EL2.set(self.sctlr);
+            SP.set(self.sp);
         }        
     }
 }

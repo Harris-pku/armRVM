@@ -106,7 +106,7 @@ fn primary_init_late() {
     INIT_LATE_OK.store(1, Ordering::Release);
 }
 
-fn main(cpu_data: &mut PerCpu) -> HvResult {
+fn main(cpu_data: &mut PerCpu, linux_sp: usize) -> HvResult {
     // println!("Hello");
     println!("cpuid{} vaddr{:#x?}", cpu_data.id, cpu_data.self_vaddr);
     let is_primary = cpu_data.id == 0;
@@ -124,7 +124,7 @@ fn main(cpu_data: &mut PerCpu) -> HvResult {
     }
 
     // cpu_data.init(linux_sp, cell::root_cell())?;
-    cpu_data.init()?;
+    cpu_data.init(linux_sp)?;
     println!("CPU {} init OK.", cpu_data.id);
     // INITED_CPUS.fetch_add(1, Ordering::SeqCst);
     // wait_for_counter(&INITED_CPUS, online_cpus)?;
@@ -137,6 +137,6 @@ fn main(cpu_data: &mut PerCpu) -> HvResult {
 
     cpu_data.activate_vmm()
 }
-extern "C" fn entry(cpu_data: &mut PerCpu) -> () {
-    if let Err(_e) = main(cpu_data) {}
+extern "C" fn entry(cpu_data: &mut PerCpu, linux_sp: usize) -> () {
+    if let Err(_e) = main(cpu_data, linux_sp) {}
 }

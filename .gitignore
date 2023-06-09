@@ -16,3 +16,4 @@
 /jailrvm
 /.vscode
 rvmarm.bin
+.gitignore

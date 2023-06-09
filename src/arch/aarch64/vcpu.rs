@@ -24,6 +24,7 @@ pub struct Vcpu {
     pub elr: u64,
     spsr: u64,
     host_stack_top: u64,
+    id_aa64mmfr0: u64,
     pub cpu_id: u64,
 }
 #[allow(unused_mut)]
@@ -43,9 +44,17 @@ impl Vcpu {
                 + SPSR_EL2::I::Masked
                 + SPSR_EL2::F::Masked)
                 .into(),
-            cpu_id,
             host_stack_top: 0,
+            id_aa64mmfr0: 0,
+            cpu_id,
         };
+        for i in 0..31 {
+            ret.guest_regs.usr[i] = linux.usr[i];
+        }
+        info!("HCR_EL2::VM = {}", HCR_EL2.read(HCR_EL2::VM));
+        info!("HCR_EL2::IMO = {}", HCR_EL2.read(HCR_EL2::IMO));
+        info!("HCR_EL2::FMO = {}", HCR_EL2.read(HCR_EL2::FMO));
+        info!("HCR_EL2::RW = {}", HCR_EL2.read(HCR_EL2::RW));
         // HCR_EL2.write(
         //     HCR_EL2::VM::Enable + 
         //     HCR_EL2::IMO::EnableVirtualIRQ +

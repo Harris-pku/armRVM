@@ -5,6 +5,8 @@ use aarch64_cpu::registers::ESR_EL2::EC::Value;
 use aarch64_cpu::registers::*;
 use tock_registers::interfaces::{ReadWriteable, Readable, Writeable};
 
+const SAVED_LINUX_REGS: usize = 31;
+
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
 pub struct GeneralRegisters {
@@ -75,6 +77,7 @@ pub struct LinuxContext {
     pub sp: u64,
 }
 
+#[allow(unused_unsafe)]
 impl LinuxContext {
     pub fn new() -> Self {
         Self {
@@ -89,27 +92,25 @@ impl LinuxContext {
             sp: 0,
         }
     }
-    pub fn load_from() -> Self {
-        Self {
+    pub fn load_from(linux_sp: usize) -> Self {
+        let regs = unsafe { core::slice::from_raw_parts(linux_sp as *const u64, SAVED_LINUX_REGS) };
+        let mut ret = Self {
             usr: [0; 31],
-            spsr: (SPSR_EL2::M::EL1h
-                + SPSR_EL2::I::Masked
-                + SPSR_EL2::F::Masked
-                + SPSR_EL2::A::Masked
-                + SPSR_EL2::D::Masked)
-                .value as u64,
-            elr: 0,
+            spsr: SPSR_EL2.get(),
+            elr: ELR_EL2.get(),
             sp: 0,
+        };
+        for i in 0..31 {
+            ret.usr[i] = regs[i];
         }
+        ret
     }
 
     /// Restore system registers.
     pub fn restore(&self) {
-
+        unsafe {
+            SPSR_EL2.set(self.spsr);
+            ELR_EL2.set(self.elr);
+        }        
     }
-
-    // /// Restore linux general-purpose registers and stack, then return back to linux.
-    // pub fn return_to_linux(&self, guest_regs: &GeneralRegisters) -> ! {
-
-    // }
 }

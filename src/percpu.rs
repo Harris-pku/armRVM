@@ -4,7 +4,7 @@
 use core::fmt::{Debug, Formatter, Result};
 use core::sync::atomic::{AtomicU32, Ordering};
 
-// use aarch64_cpu::registers::*;
+use aarch64_cpu::registers::*;
 
 use crate::arch::vcpu::Vcpu;
 use crate::arch::entry::{shutdown_el2, virt2phys_el2, vmreturn};
@@ -48,12 +48,6 @@ impl PerCpu {
         let ret = unsafe { &mut *(vaddr as *mut Self) };
         ret.id = cpu_id;
         ret.self_vaddr = vaddr;
-
-        // VTCR_EL2.write(
-        //     VTCR_EL2::T0SZ +
-            
-        // );
-
         Ok(ret)
     }
 
@@ -73,12 +67,12 @@ impl PerCpu {
         ACTIVATED_CPUS.load(Ordering::Acquire)
     }
 
-    pub fn init(&mut self) -> HvResult {
+    pub fn init(&mut self, linux_sp: usize) -> HvResult {
         info!("CPU {} init...", self.id);
 
         // Save CPU state used for linux
         self.state = CpuState::HvDisabled;
-        self.linux = LinuxContext::load_from();
+        self.linux = LinuxContext::load_from(linux_sp);
 
         // // Activate hypervisor page table on each cpu.
         // unsafe { crate::memory::hv_page_table().read().activate() };
@@ -92,12 +86,14 @@ impl PerCpu {
     }
 
     pub fn activate_vmm(&mut self) -> HvResult {
+        // println!("Activating hypervisor on CPU {}...", self.id);
         ACTIVATED_CPUS.fetch_add(1, Ordering::SeqCst);
         self.return_linux()?;
         unreachable!()
     }
 
     pub fn deactivate_vmm(&mut self, ret_code: usize) -> HvResult {
+        // println!("Deactivating hypervisor on CPU {}...", self.id);
         ACTIVATED_CPUS.fetch_sub(1, Ordering::SeqCst);
         info!("Disabling cpu{}", self.id);
         self.arch_shutdown_self();

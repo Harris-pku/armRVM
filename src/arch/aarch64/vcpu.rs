@@ -27,6 +27,7 @@ pub struct Vcpu {
     id_aa64mmfr0: u64,
     pub cpu_id: u64,
 }
+
 #[allow(unused_mut)]
 impl Vcpu {
     pub fn new(

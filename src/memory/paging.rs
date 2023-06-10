@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 #[repr(usize)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum PageSize {

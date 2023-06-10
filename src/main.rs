@@ -6,7 +6,7 @@
 // 不使用main入口，使用自己定义实际入口_start，因为我们还没有初始化堆栈指针
 #![feature(asm_const)]
 #![feature(naked_functions)] //  surpport naked function
-// #![feature(default_alloc_error_handler)]
+#![feature(default_alloc_error_handler)]
 use core::arch::global_asm;
 // 支持内联汇编
 use core::result::Result;
@@ -36,6 +36,7 @@ mod memory;
 mod panic;
 mod percpu;
 
+use crate::percpu::this_cpu_data;
 use config::HvSystemConfig;
 use error::HvResult;
 use header::HvHeader;
@@ -95,7 +96,7 @@ fn primary_init_early() -> HvResult {
     memory::init_heap();
     system_config.check()?;
     info!("Hypervisor header: {:#x?}", HvHeader::get());
-    // debug!("System config: {:#x?}", system_config);
+    debug!("System config: {:#x?}", system_config);
 
     Ok(())
 }
@@ -107,8 +108,14 @@ fn primary_init_late() {
 }
 
 fn main(cpu_data: &mut PerCpu, linux_sp: usize) -> HvResult {
-    // println!("Hello");
-    println!("cpuid{} vaddr{:#x?}", cpu_data.id, cpu_data.self_vaddr);
+    println!("Hello");
+    println!(
+        "cpuid{} vaddr{:#x?} phyid{} &cpu_data{:#x?}",
+        cpu_data.id,
+        cpu_data.self_vaddr,
+        this_cpu_data().id,
+        cpu_data as *const _
+    );
     let is_primary = cpu_data.id == 0;
     let online_cpus = HvHeader::get().online_cpus;
     wait_for(|| PerCpu::entered_cpus() < online_cpus)?;
@@ -119,22 +126,13 @@ fn main(cpu_data: &mut PerCpu, linux_sp: usize) -> HvResult {
     );
     if is_primary {
         primary_init_early()?;
-    // } else {
-    //     wait_for_counter(&INIT_EARLY_OK, 1)?
     }
 
     // cpu_data.init(linux_sp, cell::root_cell())?;
     cpu_data.init(linux_sp)?;
     println!("CPU {} init OK.", cpu_data.id);
-    // INITED_CPUS.fetch_add(1, Ordering::SeqCst);
-    // wait_for_counter(&INITED_CPUS, online_cpus)?;
 
-    // if is_primary {
-    //     primary_init_late();
-    // } else {
-    //     wait_for_counter(&INIT_LATE_OK, 1)?
-    // }
-
+    //memory::init_hv_page_table()?;
     cpu_data.activate_vmm()
 }
 extern "C" fn entry(cpu_data: &mut PerCpu, linux_sp: usize) -> () {

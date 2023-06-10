@@ -4,7 +4,9 @@
 use core::fmt::{Debug, Formatter, Result};
 use core::sync::atomic::{AtomicU32, Ordering};
 
-use aarch64_cpu::registers::*;
+use aarch64_cpu::registers::MPIDR_EL1;
+use aarch64_cpu::{asm, registers::*};
+use tock_registers::interfaces::*;
 
 use crate::arch::vcpu::Vcpu;
 use crate::arch::entry::{shutdown_el2, virt2phys_el2, vmreturn};
@@ -33,21 +35,22 @@ pub struct PerCpu {
     pub state: CpuState,
     pub vcpu: Vcpu,
     linux: LinuxContext,
+    pub wait_for_poweron: bool,
     // Stack will be placed here.
 }
 
-#[allow(unused_must_use)]
 impl PerCpu {
     pub fn new<'a>(cpu_id: u64) -> HvResult<&'a mut Self> {
         if Self::entered_cpus() >= HvHeader::get().max_cpus {
             return hv_result_err!(EINVAL);
         }
-
+        
         let _cpu_rank = ENTERED_CPUS.fetch_add(1, Ordering::SeqCst);
         let vaddr = PER_CPU_ARRAY_PTR as VirtAddr + cpu_id as usize * PER_CPU_SIZE;
         let ret = unsafe { &mut *(vaddr as *mut Self) };
         ret.id = cpu_id;
         ret.self_vaddr = vaddr;
+        ret.wait_for_poweron = false;
         Ok(ret)
     }
 
@@ -86,14 +89,13 @@ impl PerCpu {
     }
 
     pub fn activate_vmm(&mut self) -> HvResult {
-        // println!("Activating hypervisor on CPU {}...", self.id);
         ACTIVATED_CPUS.fetch_add(1, Ordering::SeqCst);
+        HCR_EL2.write(HCR_EL2::RW::EL1IsAarch64 + HCR_EL2::TSC::TrapSMC);
         self.return_linux()?;
         unreachable!()
     }
 
     pub fn deactivate_vmm(&mut self, ret_code: usize) -> HvResult {
-        // println!("Deactivating hypervisor on CPU {}...", self.id);
         ACTIVATED_CPUS.fetch_sub(1, Ordering::SeqCst);
         info!("Disabling cpu{}", self.id);
         self.arch_shutdown_self();
@@ -106,7 +108,6 @@ impl PerCpu {
         }
         Ok(())
     }
-    
     /*should be in vcpu*/
     pub fn arch_shutdown_self(&mut self) -> HvResult {
         /* Free the guest */
@@ -144,7 +145,15 @@ impl PerCpu {
 pub fn this_cpu_data<'a>() -> &'a mut PerCpu {
     /*per cpu data should be handled after final el2 paging init
     now just only cpu 0*/
-    let cpu_id = 0;
+    /*arm_read_sysreg(MPIDR_EL1, mpidr);
+    return mpidr & MPIDR_CPUID_MASK;*/
+    let mpidr = MPIDR_EL1.get();
+
+    let cpu_id = mpidr & 0xff00ffffff;
+    let cpu_data: usize = PER_CPU_ARRAY_PTR as VirtAddr + cpu_id as usize * PER_CPU_SIZE;
+    unsafe { &mut *(cpu_data as *mut PerCpu) }
+}
+pub fn get_cpu_data<'a>(cpu_id: u64) -> &'a mut PerCpu {
     let cpu_data: usize = PER_CPU_ARRAY_PTR as VirtAddr + cpu_id as usize * PER_CPU_SIZE;
     unsafe { &mut *(cpu_data as *mut PerCpu) }
 }
